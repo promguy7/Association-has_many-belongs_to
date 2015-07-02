@@ -1,28 +1,64 @@
-== README
+					NOTES :
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Rails 4.1.8 ruby 2.0.0
+Follow the Steps to Learn
 
-Things you may want to cover:
+http://guides.rubyonrails.org/v3.2.9/getting_started.html
+            
+has_many/belogs_to
+1.rails generate scaffold Post name:string title:string content:text
+2.rails generate model Comment commenter:string body:text post:references
+3.rails generate controller Comments
+4.Modify the migrations and models
+5.Run migrations
+6.Use validations
 
-* Ruby version
+https://robots.thoughtbot.com/referential-integrity-with-foreign-keys
 
-* System dependencies
+why to write foreign_key parameter in migration if we use dependent: :destroy
 
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+class Post < ActiveRecord::Base
+has_many :comments, dependent: :destroy
+end
 
 
-Please feel free to use a different markup language if you do not plan to run
-<tt>rake doc:app</tt>.
+dependent: :destroy save us here? Well, delete_all doesn’t instantiate the objects it is deleting and thus does not fire any after_destroy callbacks. The dependent options work via that callback.
+
+ADDED TO MIGRATION:
+ t.references :post, index: true, foreign_key:true (oprtional if .destroy is used)
+Quering
+
+@post=Post.find_or_create_by(name: 'Andy')
+@comment=@post.comments.find_or_create_by(post_id: '1')
+ @comment.destroy          DELETE THE COMMENT OF THE POST
+@post.delete                      DELETE THE POST AND THE COMMENTS OF THE POSTS
+
+
+dependent: :destroy if this is not mentioned then 
+
+@post.delete                      DELETE THE COMMENTS OF THE POSTS BUT NOT THE POST
+
+QUESTION
+Do we need to add belongs_to and has_many for the same association ??? YES
+
+
+Adding one more model to Post and Comments
+rails generate model Tag urls:string comment:references
+
+QUERIES
+@post=Post.find(2)
+@comments=@post.comments.find_or_create_by(commenter: 'Andycomment')
+@comments.tags.find_or_create_by(urls: 'http://www.andy2.com')
+irb(main):058:0> Post.find(2).comments[0].tags[0]
+
+  Post Load (0.0ms)  SELECT  "posts".* FROM "posts"  WHERE "posts"."id" = ? LIMIT 1  [["id", 2]]
+  Comment Load (1.0ms)  SELECT "comments".* FROM "comments"  WHERE "comments"."post_id" = ?  [["post_id", 2]]
+  Tag Load (0.0ms)  SELECT "tags".* FROM "tags"  WHERE "tags"."comment_id" = ?  [["comment_id", 2]]
+=> #<Tag id: 1, urls: "http://andy.com", comment_id: 2, created_at: "2015-06-27 06:33:41", updated_at: "2015-06-27 06:33:41">
+
+PROBLEM
+1.irb(main):022:0> @post.comments
+NoMethodError: undefined method `hans_many' for #<Class:0x4d0ae58>
+
+2.NoMethodError: undefined method `comments' for #<Post::ActiveRecord_Relation:0x4cf9260>
+When a array is a output
